@@ -159,7 +159,6 @@ def cartdelete() :
     else :
         return jsonify({"result": "fail", "message": "No items selected"})
     
-
 @app.route("/purchase.do")
 def purchase():
    

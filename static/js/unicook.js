@@ -191,6 +191,7 @@ function deleteCartItems(cnos)
                 // 서버 삭제 성공 시 UI에서 해당 항목들 제거
                 cnos.forEach(function(cno) {
                     $(".cart-item-container[data-cno='" + cno + "']").remove();
+                    $(".cart-summary-item[data-cno='" + cno + "']").remove();
                     $("#cart-badge").text(response.new_count);
                     updateFinalTotal();
                     if (response.new_count == 0) {
@@ -242,18 +243,44 @@ function deleteItemOne(obj, cno) {
 }
 // 상품 총 금액 계산
 function updateFinalTotal() {
-    let totalSum = 0;
 
     // 최신화된 장바구니 총 합계 계산
-    $(".item-total-price").each(function() {
-        // data-value에 넣어둔 숫자값을 가져와서 더함
-        let val = parseInt($(this).attr("data-value")) || 0;
-        totalSum += val;
+    let totalSum = 0;
+
+    // 모든 상품 컨테이너를 하나씩 확인
+    $(".cart-item-container").each(function() {
+        // 체크박스 체크되어 있는지 확인
+        let cno = $(this).attr("data-cno");
+        let isChecked = $(this).find(".item-checkbox").prop("checked");
+
+        let summaryItem = $(".cart-summary-item[data-cno='" + cno + "']");
+
+        if (isChecked) {
+        
+            summaryItem.show();
+            
+            // 체크된 경우에만 금액을 더함
+            let val = summaryItem.find(".item-total-price").attr("data-value");
+            totalSum += parseInt(val);
+        }else{
+            summaryItem.hide();
+        }
     });
 
     // 최종 금액 업데이트
     $("#total-sum").text(totalSum.toLocaleString() + "원");
 }
+
+// 체크박스 클릭 시 합계 업데이트
+$(document).on("change", ".item-checkbox", function() {
+    updateFinalTotal();
+});
+
+// 전체 선택 체크박스 클릭 시 합계 업데이트 (있을 경우)
+$(document).on("change", "#selectAll", function() {
+    // 전체 선택 클릭 시 브라우저가 체크박스 상태를 바꿀 시간을 약간 줌
+    setTimeout(updateFinalTotal, 10);
+});
 
 // 카테고리 목록부분
 let currentCategory = 0;
