@@ -46,6 +46,38 @@ window.onload = function()
 		});				
 		
 	});
+	
+	$("#btnSearch").on("click", function(){
+    	searchKeyword();
+	});
+}
+
+function searchKeyword() 
+{
+    keyword = $("#keyword").val();
+    keywordTitle = "[" + keyword + "] 관련 상품"
+    $.ajax({
+    	url : "/search.do",
+    	type : "get",
+    	dataType: "html",
+    	data :
+    	{
+        	keyword : keyword
+    	},
+    	async : true,
+    	success : function(data) 
+    	{
+            $("#category").html(data);
+            $("#category-title").html(keywordTitle);
+            
+            //페이지 상단으로 스크롤 부드럽게 이동
+            window.scrollTo({top: 830, behavior: 'smooth'});
+    	},
+    	error : function(request, status, error) 
+    	{
+        	alert("실패");
+    	}
+    });
 }
 
 

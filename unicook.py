@@ -78,6 +78,29 @@ def login_check() :
         return jsonify({"login" : True})
     else :
         return jsonify({"login" : False})
+    
+# 검색 (/search)
+@app.route("/search.do")
+def search() :
+    current_page = request.args.get('page', 1, type=int)
+    category = "0"
+    keyword = request.args.get('keyword')
+    dao = ItemDAO()
+    total, items = dao.GetList(current_page, category, keyword)
+    
+    # 페이지 6개씩 구현
+    total_pages = math.ceil(total / 16)
+    block_size = 5
+    start_page = ((current_page - 1) // block_size) * block_size + 1
+    end_page = start_page + block_size
+    
+    if end_page > total_pages:
+        end_page = total_pages
+    return render_template("_category_partial.html", items        = items,
+                                                     total_pages  = total_pages,
+                                                     current_page = current_page,
+                                                     start_page   = start_page,
+                                                     end_page     = end_page)
 
 # 카테고리 (/category)
 @app.route("/category.do")
