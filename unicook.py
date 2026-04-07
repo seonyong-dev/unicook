@@ -3,7 +3,7 @@ from flask import render_template
 from flask import request
 from flask import redirect
 
-from flask import session, jsonify
+from flask import session, jsonify, url_for
 from modules.UserVO  import UserVO
 
 from flask import session
@@ -48,6 +48,24 @@ def main() :
                                         start_page   = start_page,
                                         end_page     = end_page)
 
+@app.before_request 
+def check_login() :
+    allowed_endpoints = [ 'login',  'loginok', 'static', 'register', 'main', 'logout' ]
+    
+    if request.endpoint in allowed_endpoints :
+        return
+
+    if 'login' not in session :
+            return redirect(url_for('main'))
+
+@app.after_request
+def add_header(response):
+    # 브라우저에게 응답 내용을 캐시(저장)하지 말라고 지시
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response            
+
 @app.route("/login.do")
 def login() :
     return render_template("login.html")
@@ -68,8 +86,8 @@ def loginok() :
 # 로그아웃 (/logout.do)
 @app.route("/logout.do")
 def logout() :
-    session["login"] = None
-    return redirect("/")
+    session.clear()
+    return redirect(url_for('main'))
 
 # 로그인 체크(/loginCheck.do)
 @app.route("/loginCheck.do")
