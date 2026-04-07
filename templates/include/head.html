@@ -45,6 +45,9 @@
                     alert("오류가 발생했습니다.");
                 });
         }
+        
+        
+        
     </script>
 <!-- Header -->
 <nav class="navbar navbar-expand-lg sticky-top py-3">
@@ -55,8 +58,8 @@
 
         <div class="search-container mx-auto d-none d-md-block">
             <div class="input-group">
-                <input type="text" class="form-control border-end-0 rounded-start-pill" placeholder="오늘 뭐 먹지?" aria-label="Search">
-                <span class="input-group-text bg-white border-start-0 rounded-end-pill">
+                <input type="search" id="SearchInput" class="form-control border-end-0 rounded-start-pill" placeholder="오늘 뭐 먹지?" aria-label="Search" value="{{ key }}" onkeypress="if(event.key==='Enter' || event.keyCode===13){ searchProduct(); }">
+                <span class="input-group-text bg-white border-start-0 rounded-end-pill" id="searchButton" style="cursor: pointer;" onclick="searchProduct()">
                     <i class="fa-solid fa-magnifying-glass text-muted"></i>
                 </span>
             </div>

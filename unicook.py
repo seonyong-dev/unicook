@@ -1,6 +1,7 @@
 from flask import Flask
 from flask import render_template
 from flask import request
+from flask import make_response
 from flask import redirect
 
 from flask import session, jsonify, url_for
@@ -26,6 +27,15 @@ from modules.CartDAO import CartDAO
 app = Flask(__name__)
 
 app.secret_key = "unicook"
+
+@app.before_request 
+def add_header():
+    print("add head...")
+    response = make_response("Custom Response Body")
+    # 브라우저에게 응답 내용을 캐시(저장)하지 말라고 지시
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
 
 @app.route("/")
 def main() :

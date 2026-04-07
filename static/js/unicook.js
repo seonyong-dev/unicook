@@ -48,6 +48,37 @@ window.onload = function()
 	});
 }
 
+//상단 검색
+function searchProduct() 
+{
+    const k = document.getElementById('searchInput').value;
+    document.location = "category.do?key=" + k;
+    
+    if( k === "" )
+    {
+        alert("검색어를 입력해주세요.");
+        $("#SearchBtn").focus();
+        return;
+    }
+    
+    console.log("검색어:", k);
+    alert("'" + k + "' 검색어로 검색을 진행합니다.");
+    location.href = "search_result.html?q=" + encodeURLComponent(k);
+ 
+    $("#SearchBtn").on('keydown', function(e){
+        if(e.keyCode === 13) { Search(); }
+    })
+    
+    $("#searchButton").on('click',function(){
+        Search();
+    })
+            
+    /*
+    const filtered = products.filter(p => p.name.includes(k));
+    document.getElementById('personalizedList').innerHTML = filtered.map(p => createCard(p)).join('');
+    */
+}
+
 
 function ShowLogin()
 {
