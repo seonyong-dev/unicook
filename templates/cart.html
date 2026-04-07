@@ -1,5 +1,5 @@
 {% include 'include/head.html' %}
-    <main class="container mb-5">
+    <main class="container mb-5"><br>
         <h3 class="fw-bold mb-4">장바구니</h3>
 
         <div class="row g-4">
@@ -14,6 +14,7 @@
                         </div>
                         <button id="deleteSelectedBtn" class="btn btn-sm btn-outline-danger border-0" onclick="deleteSelectItems()">선택삭제</button>
                     </div>
+<<<<<<< HEAD
 
                     <!-- 상품 아이템 -->
                     {% for item in cart_list %}
@@ -36,6 +37,30 @@
                             </div>
                             <button class="btn btn-sm text-muted position-absolute top-0 end-0" onclick="deleteItemOne(this, {{item.cno}})"><i class="fa-solid fa-xmark fs-5"></i></button>
                         </div>
+=======
+                    {% for vo in items %}
+                    <!-- 상품 아이템 1 -->
+                    <div class="d-flex align-items-start mb-4 position-relative">
+                        <div class="form-check mt-3 me-3">
+                            <input class="form-check-input" type="checkbox" checked>
+                        </div>
+                        <div class="product-img me-3">
+                            <img src="https://product-image.kurly.com/hdims/resize/%5E%3E720x%3E936/cropcenter/720x936/quality/85/src/product/image/989d0b2f-63fb-457f-a33d-e5b82b39ccf2.jpg" 
+                                 class="img-fluid rounded-4 shadow-sm custom-product-img" alt="새우볶음밥 이미지">
+                        </div>
+                        <div class="flex-grow-1">
+                            <h6 class="fw-bold mb-1">[차려낸] 새우볶음밥</h6>
+                            <div class="text-danger fw-bold mb-2"> 9,800원</div>
+                            <!-- 수량 조절 -->
+                            <div class="d-flex align-items-center gap-2">
+                                <button class="qty-btn"><i class="fa-solid fa-minus fa-xs"></i></button>
+                                <span class="px-2">1</span>
+                                <button class="qty-btn"><i class="fa-solid fa-plus fa-xs"></i></button>
+                            </div>
+                        </div>
+                        <button class="btn btn-sm text-muted position-absolute top-0 end-0"><i class="fa-solid fa-xmark fs-5"></i></button>
+                    </div>
+>>>>>>> 59a044ee16329e5092f01ee818c7859dda56a463
                     {% endfor %}
                 </div>
                 <br>

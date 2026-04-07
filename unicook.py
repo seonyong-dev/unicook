@@ -1,13 +1,15 @@
+import math
 from flask import Flask
 from flask import render_template
 from flask import request
 from flask import redirect
 from flask import session
 from flask import jsonify
+from flask import url_for
 from modules.UserDAO import UserDAO
 from modules.ItemDAO import ItemDAO
 from modules.CartDAO import CartDAO
-import math
+from modules.BuyDAO  import BuyDAO
 
 app = Flask(__name__)
 
@@ -21,7 +23,7 @@ def main() :
     dao = ItemDAO()
     total, items = dao.GetList(current_page, category)
     
-    # 페이지 5개씩 구현
+    # 페이지 6개씩 구현
     total_pages = math.ceil(total / 16)
     block_size = 5
     start_page = ((current_page - 1) // block_size) * block_size + 1
@@ -46,6 +48,7 @@ def loginok() :
     pw = request.form["pw"]
     dao = UserDAO()
     vo = dao.Login(id,pw)
+    
     if vo == None :
         return "ERROR";
     else :
@@ -55,8 +58,38 @@ def loginok() :
 # 로그아웃 (/logout.do)
 @app.route("/logout.do")
 def logout() :
-    session["login"] = None
-    return redirect("/")
+    session.clear()
+    return redirect(url_for('main'))
+
+# 로그인 체크(/loginCheck.do)
+@app.route("/loginCheck.do")
+def login_check() : 
+    if session.get('login') :
+        return jsonify({"login" : True})
+    else :
+        return jsonify({"login" : False})
+
+# 카테고리 (/category)
+@app.route("/category.do")
+def category() :
+    current_page = request.args.get('page', 1, type=int)
+    category = request.args.get("category", "0")
+    dao = ItemDAO()
+    total, items = dao.GetList(current_page, category)
+    
+    # 페이지 6개씩 구현
+    total_pages = math.ceil(total / 16)
+    block_size = 5
+    start_page = ((current_page - 1) // block_size) * block_size + 1
+    end_page = start_page + block_size
+    
+    if end_page > total_pages:
+        end_page = total_pages
+    return render_template("_category_partial.html", items        = items,
+                                                     total_pages  = total_pages,
+                                                     current_page = current_page,
+                                                     start_page   = start_page,
+                                                     end_page     = end_page)
 
 # 상세페이지
 @app.route("/view.do")
@@ -128,8 +161,20 @@ def cartdelete() :
     
 
 @app.route("/purchase.do")
-def purchase() :
-    return render_template("purchase.html")
+def purchase():
+   
+    # 1. 로그인 여부 확인
+    if "login" not in session or session["login"] is None:
+        return redirect("/login.do") # 슬래시(/)를 붙이는 것이 더 안전합니다.
+    
+    # 2. 세션에서 아이디 가져오기 (따옴표 "id" 확인!)
+    user_id = session["login"]["id"] 
+    
+    dao = BuyDAO()
+    buys = dao.GetList(user_id)
+
+    # 4. HTML에 전달
+    return render_template("purchase.html", buys=buys)
 
 @app.route("/bunsuk.do")
 def bunsuk_main() :
