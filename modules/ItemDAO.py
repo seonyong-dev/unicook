@@ -6,7 +6,7 @@ from modules.DBManager import DBManager
 from modules.ItemVO    import ItemVO
 
 class ItemDAO :
-    def GetList(self, page, category) :
+    def GetList(self, page, category, keyword=None) :
         """
         게시물 목록
         category:category_id -> 
@@ -20,6 +20,8 @@ class ItemDAO :
             sql += "from item "
             if category != "0" :
                 sql += f"where category_id = '{ category }' "
+            if keyword :
+                sql += f"where item_name LIKE '%{ keyword }%' "    
             total = db.Select(sql)
             total = db.GetValue(0, "total")
             print(f"total:{total}")
@@ -27,6 +29,8 @@ class ItemDAO :
             sql  = "select * from item "
             if category != "0" :
                 sql += f"where category_id = '{ category }' "
+            if keyword :
+                sql += f"where item_name LIKE '%{ keyword }%' "
             sql += "order by view desc "
             sql += f"limit { offset }, 16 "
             

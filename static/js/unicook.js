@@ -46,39 +46,43 @@ window.onload = function()
 		});				
 		
 	});
+	
+	$("#btnSearch").on("click", function(){
+    	searchKeyword();
+	});
 }
 
-//상단 검색
-function searchProduct() 
+function searchKeyword() 
 {
-    const k = document.getElementById('searchInput').value;
-    document.location = "category.do?key=" + k;
-    
-    if( k === "" )
-    {
-        alert("검색어를 입력해주세요.");
-        $("#SearchBtn").focus();
-        return;
-    }
-    
-    console.log("검색어:", k);
-    alert("'" + k + "' 검색어로 검색을 진행합니다.");
-    location.href = "search_result.html?q=" + encodeURLComponent(k);
- 
-    $("#SearchBtn").on('keydown', function(e){
-        if(e.keyCode === 13) { Search(); }
-    })
-    
-    $("#searchButton").on('click',function(){
-        Search();
-    })
+    keyword = $("#keyword").val();
+    keywordTitle = "[" + keyword + "] 관련 상품"
+    $.ajax({
+    	url : "/search.do",
+    	type : "get",
+    	dataType: "html",
+    	data :
+    	{
+        	keyword : keyword
+    	},
+    	async : true,
+    	success : function(data) 
+    	{
+            $("#category").html(data);
+            if (keyword) {
+                $("#category-title").html(keywordTitle);
+            }else{
+                $("#category-title").html("전체 보기");
+            }
             
-    /*
-    const filtered = products.filter(p => p.name.includes(k));
-    document.getElementById('personalizedList').innerHTML = filtered.map(p => createCard(p)).join('');
-    */
+            //페이지 상단으로 스크롤 부드럽게 이동
+            window.scrollTo({top: 830, behavior: 'smooth'});
+    	},
+    	error : function(request, status, error) 
+    	{
+        	alert("실패");
+    	}
+    });
 }
-
 
 function ShowLogin()
 {
