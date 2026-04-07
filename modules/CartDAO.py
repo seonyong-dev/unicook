@@ -39,8 +39,17 @@ class CartDAO :
             return db.RunSQL(sql)
     
     def CartDelete(self, cnos) :
+        
+        if not isinstance(cnos, list) :
+            cnos = [cnos]
+            
+        if not cnos :
+            return
+        
         with DBManager() as db :
+            
             placeholders = ', '.join(['%s'] * len(cnos))
+            print(placeholders)
             sql = f"DELETE FROM cart WHERE cno IN ({placeholders})"
             
             cursor = db.con.cursor()

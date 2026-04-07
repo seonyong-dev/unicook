@@ -17,6 +17,7 @@
                     <!-- 상품 아이템 -->
                     {% for item in cart_list %}
                         <div class="cart-item-container d-flex align-items-start mb-4 position-relative" data-cno="{{item.cno}}">
+                            <input id="item-code" type="hidden" type="text" value="{{item.code}}">
                             <div class="form-check mt-3 me-3">
                                 <input class="form-check-input item-checkbox" type="checkbox" checked>
                             </div>
@@ -91,11 +92,9 @@
                             {{ "{:,}".format(ns.total_all) }}원
                         </h4>
                     </div>
-                    <a href="/buy.do">
-                        <button class="btn btn-sand w-100 py-3 fw-bold fs-5 shadow-sm">
-                            구매하기
-                        </button>
-                    </a>
+                    <button class="btn btn-sand w-100 py-3 fw-bold fs-5 shadow-sm" onclick="purchase()">
+                        구매하기
+                    </button>
                 </div>
             </div>
         </div>

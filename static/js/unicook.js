@@ -195,7 +195,7 @@ function deleteCartItems(cnos)
                     $("#cart-badge").text(response.new_count);
                     updateFinalTotal();
                     if (response.new_count == 0) {
-                        $("#cart-badge").empty();
+                        $("#cart-badge").val(0);
                     }
                     
                     // 삭제 후 전체선택 상태 다시 계산
@@ -327,4 +327,52 @@ function loadItems(category, page) {
         	alert("실패");
     	}
     });
+}
+
+function purchase(){
+    let purchaseData = [];
+    
+    $(".cart-item-container").each(function() {
+        let isChecked = $(this).find(".item-checkbox").prop("checked");
+        
+        if (isChecked) {
+            let cno = $(this).attr("data-cno");               // 장바구니 번호
+            let code = $(this).find("#item-code").val();      // 상품 코드
+            let qty = $(this).find(".qtyCount").text();       // 수량 (텍스트박스라면 .val())
+            
+            purchaseData.push({
+                cno  : cno,
+                code : parseInt(code),
+                qty  : parseInt(qty)
+            });
+        }
+    });
+    
+    // 체크된 상품이 없을 때
+    if (purchaseData.length === 0) {
+        alert("구매할 상품을 선택해주세요.");
+        return;
+    }
+    
+    $.ajax({
+        url: "/purchase.do",
+        type: "POST",
+        contentType: "application/json",
+        data: JSON.stringify({
+            items: purchaseData
+        }),
+        success: function(data) {
+            if (data == "success") {
+                alert("결제가 완료되었습니다!");
+                
+                location.href = "/purchase.do"; // 완료 페이지로 이동
+            } else {
+                alert("구매 처리 중 오류가 발생했습니다.");
+            }
+        },
+        error: function() {
+            alert("서버 통신 오류가 발생했습니다.");
+        }
+    });
+    
 }

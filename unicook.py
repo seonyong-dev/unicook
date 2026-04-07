@@ -142,7 +142,7 @@ def cartdelete() :
     
     data = request.get_json()
     cnos = data.get("cnos")
-    print(f"받은 cnos 데이터: {cnos}")
+    
     if cnos :
         dao = CartDAO()
         dao.CartDelete(cnos)
@@ -174,6 +174,35 @@ def purchase():
 
     # 4. HTML에 전달
     return render_template("purchase.html", buys=buys)
+
+# 구매 완료 처리
+@app.route("/purchase.do", methods=["POST"])
+def purchaseadd():
+    data  = request.get_json()
+    items = data.get("items")
+    login_info = session.get("login")
+    id = login_info.get("id")
+    
+    if not login_info :
+        return jsonify({"result": "fail", "message": "로그인이 필요합니다."})
+    
+    buy_dao  = BuyDAO()
+    cart_dao = CartDAO()
+    
+    cno_list = []
+    for item in items :
+        cno  = item["cno"]
+        code = item["code"]
+        qty  = item["qty"]
+        
+        buy_dao.Insert(id, code, qty)
+        
+        cno_list.append(cno)
+    
+    if cno_list:
+        cart_dao.CartDelete(cno_list)
+        
+    return "success"
 
 @app.route("/bunsuk.do")
 def bunsuk_main() :
