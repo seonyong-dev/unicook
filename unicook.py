@@ -10,7 +10,6 @@ from flask import session
 
 from modules.UserDAO import UserDAO
 from modules.ItemDAO import ItemDAO
-<<<<<<< HEAD
 
 from modules.CartVO  import CartVO
 from modules.CartDAO import CartDAO
@@ -72,7 +71,6 @@ def logout() :
     session["login"] = None
     return redirect("/")
 
-<<<<<<< HEAD
 # 로그인 체크(/loginCheck.do)
 @app.route("/loginCheck.do")
 def login_check() : 
@@ -80,7 +78,7 @@ def login_check() :
         return jsonify({"login" : True})
     else :
         return jsonify({"login" : False})
-=======
+
 # 카테고리 (/category)
 @app.route("/category.do")
 def category() :
@@ -102,7 +100,6 @@ def category() :
                                                      current_page = current_page,
                                                      start_page   = start_page,
                                                      end_page     = end_page)
->>>>>>> 86e458b6e749de979d3c908e8cfd21a98bdd9eb6
 
 # 상세페이지
 @app.route("/view.do")
