@@ -9,6 +9,8 @@ from modules.ItemVO  import ItemVO
 from modules.ItemDAO import ItemDAO
 from modules.CartVO  import CartVO
 from modules.CartDAO import CartDAO
+import math
+
 
 app = Flask(__name__)
 
@@ -16,11 +18,24 @@ app.secret_key = "unicook"
 
 @app.route("/")
 def main() :
-    page = request.args.get("page", 1)
+    current_page = request.args.get('page', 1, type=int)
     category = request.args.get("category", "0")
     dao = ItemDAO()
-    total, items = dao.GetList(page, category)
-    return render_template("main.html", items = items)
+    total, items = dao.GetList(current_page, category)
+    
+    # 페이지 5개씩 구현
+    total_pages = math.ceil(total / 16)
+    block_size = 5
+    start_page = ((current_page - 1) // block_size) * block_size + 1
+    end_page = start_page + block_size
+    
+    if end_page > total_pages:
+        end_page = total_pages
+    return render_template("main.html", items        = items,
+                                        total_pages  = total_pages,
+                                        current_page = current_page,
+                                        start_page   = start_page,
+                                        end_page     = end_page)
 
 @app.route("/login.do")
 def login() :
