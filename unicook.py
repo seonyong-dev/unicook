@@ -11,6 +11,7 @@ from modules.UserDAO import UserDAO
 from modules.ItemDAO import ItemDAO
 from modules.CartDAO import CartDAO
 from modules.BuyDAO  import BuyDAO
+from modules.TimeDAO import TimeDAO
 
 app = Flask(__name__)
 
@@ -18,7 +19,6 @@ app.secret_key = "unicook"
 
 @app.before_request 
 def add_header():
-    print("add head...")
     response = make_response("Custom Response Body")
     # 브라우저에게 응답 내용을 캐시(저장)하지 말라고 지시
     response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
@@ -32,6 +32,9 @@ def main() :
     dao = ItemDAO()
     total, items = dao.GetList(current_page, category)
     
+    time_dao  = TimeDAO()
+    time_data, slot = time_dao.time_analyze()
+    
     # 페이지 6개씩 구현
     total_pages = math.ceil(total / 16)
     block_size = 5
@@ -44,7 +47,10 @@ def main() :
                                         total_pages  = total_pages,
                                         current_page = current_page,
                                         start_page   = start_page,
-                                        end_page     = end_page)
+                                        end_page     = end_page,
+                                        time_data    = time_data,
+                                        slot         = slot
+                                        )
 
 @app.route("/login.do")
 def login() :
@@ -128,12 +134,19 @@ def cartadd() :
     try :
         login_info = session.get("login")
         if not login_info :
-            return jsonify({"result": "fail", "message": "로그인이 필요합니다."})
+            return jsonify({"result": "login", "message": "로그인이 필요합니다."})
         id   = login_info.get("id")
         code = request.args.get("code")
         qty  = request.args.get("qty")
     
         dao = CartDAO()
+        
+        existing_items = dao.GetList(id)
+        
+        already_cart = any(int(item.code) == int(code) for item in existing_items)
+        
+        if already_cart :
+            return jsonify({"result": "duplicate", "message": "이미 장바구니에 담긴 상품입니다."})
         
         dao.CartAdd(id, int(code), int(qty))
         
@@ -146,6 +159,18 @@ def cartadd() :
         print(f"Error: {e}")
         return jsonify({"result": "fail"}) # 저장 실패
 
+# 장바구니 상품 수량변경
+@app.route("/update_cart_qty.do", methods=["POST"])
+def update_cart_qty() :
+    cno = request.form.get("cno")
+    qty = request.form.get("qty")
+    
+    dao = CartDAO()
+    
+    dao.CartQtyUdate(cno, qty)
+    
+    return "success"
+    
 # 장바구니 삭제
 @app.route("/cartdelete.do", methods=["POST"])
 def cartdelete() :
@@ -185,12 +210,10 @@ def purchase():
 
     buys = dao.GetList(user_id, period)
 
-        
     current_page = request.args.get('page', 1, type=int)
     #purchase = request.args.get("purchase", "0")
     per_page = 5
-    dao = BuyDAO()
-    buys = dao.GetList(user_id, period)
+  
     total = len(buys) # 전체 구매 건수
     maxpage = (total - 1) // per_page + 1;
     
@@ -254,7 +277,7 @@ def bunsuk_main() :
 # 로그인 시 장바구니에 담긴 상품 갯수 조회를 헤더에 항상 표시하기 위한 함수
 # @app.context_processor -> 공통 데이터 담당 (항상 표시해야될 데이터에 사용)
 @app.context_processor
-def cart_info() :
+def info() :
     login_info = session.get("login")
     id = login_info.get("id") if login_info else None
     
