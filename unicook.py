@@ -11,7 +11,7 @@ from modules.UserDAO import UserDAO
 from modules.ItemDAO import ItemDAO
 from modules.CartDAO import CartDAO
 from modules.BuyDAO  import BuyDAO
-# 복구
+
 app = Flask(__name__)
 
 app.secret_key = "unicook"
