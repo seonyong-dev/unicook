@@ -377,6 +377,11 @@ function selectCategory(element)
     loadItems(currentCategory, 1);
 }
 
+// 페이지 번호 클릭 시
+function changePage(page) {
+    loadItems(currentCategory, page);
+}
+
 $(document).ready(function() {
     $(".filter-btn").on("click", function() {
         // 클릭한 버튼 -> active 클래스 추가, 나머지는 제거
