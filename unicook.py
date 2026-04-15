@@ -279,23 +279,46 @@ def purchaseadd():
     return "success"
 
 @app.route("/bunsuk.do")
-def bunsuk_main() :
+def bunsuk() :
     
     login_info = session.get("login")
     id = login_info.get("id") if login_info else None
     check_id = True if id else False
     
-    time_dao  = RecommendDAO()
-    time_data, slot, slot_range = time_dao.GetAiRecommend(id)
-    
     target = request.args.get("target","main")
-    return render_template("bunsuk.html", 
-                           target     = target,
-                           check_id   = check_id,
-                           time_data  = time_data,
-                           slot       = slot,
-                           slot_range = slot_range
-                           )
+    
+    if target == "main" :
+        time_dao  = RecommendDAO()
+        time_data, slot, slot_range = time_dao.GetAiRecommend(id)
+        return render_template("bunsuk.html", 
+                               target     = target,
+                               check_id   = check_id,
+                               time_data  = time_data,
+                               slot       = slot,
+                               slot_range = slot_range
+                               )
+    if target == "cart" :
+        re_dao = RecommendDAO()
+        re_dao.CartAiRecommend(id, algo_type = "cart")
+        total, items = re_dao.GetByUserFrequency(id, n=4, algo_type = "cart")
+        if int(total) > 0 :
+            return render_template("bunsuk.html",
+                                   target = target,
+                                   total  = total,
+                                   items  = items
+                                   )
+    
+    if target == "purchase" :
+        buy_dao = RecommendDAO()
+        buy_dao.MakePersonalBestRecommendations(id, algo_type = "best")
+        total,items = buy_dao.GetByUserFrequency(id, n=4, algo_type = "best")
+        if int(total) > 0 :
+            return render_template("/bunsuk.html",
+                                   target = target,
+                                   total  = total,
+                                   items  = items
+                                   )
+    
     #return render_template(f"bunsuk_{target}.html",target = target)
 
 # 분석한 추천 상품

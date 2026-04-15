@@ -816,12 +816,12 @@ class RecommendDAO  :
             
             # 기존 추천정보 삭제
             sql  = "delete from score "
-            sql += "where id = '{target_id}' and algo_type = '{algo_type}'"
+            sql += f"where id = '{target_id}' and algo_type = '{algo_type}'"
             db.RunSQL(sql)
             
             # 데이터 전처리
             df_buys = df_buys.copy()
-            df_buys["code"] = df_buys["copy"].astype(str)
+            df_buys["code"] = df_buys["code"].astype(str)
             df_cart = df_cart.copy()
             df_cart["code"] = df_cart["code"].astype(str)
             
@@ -870,10 +870,10 @@ class RecommendDAO  :
                 sql  = "insert into score "
                 sql += "(id, code, score, algo_type) "
                 sql += "values "
-                sql += "('{target_id}','{code}', '{score}', '{algo_type}')"
+                sql += f"('{target_id}','{code}', '{score}', '{algo_type}')"
                 db.RunSQL(sql)
-        return True
-            
+                
+            return ndf
 
 """
 target_user = "user_001"        
