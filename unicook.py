@@ -32,7 +32,7 @@ def main() :
     id = login_info.get("id") if login_info else None
     
     time_dao  = RecommendDAO()
-    time_data, slot, slot_range = time_dao.get_ai_recommand(id)
+    time_data, slot, slot_range = time_dao.GetAiRecommend(id)
     
     current_page = request.args.get('page', 1, type=int)
     category = request.args.get("category", "0")
@@ -286,7 +286,7 @@ def bunsuk_main() :
     check_id = True if id else False
     
     time_dao  = RecommendDAO()
-    time_data, slot, slot_range = time_dao.get_ai_recommand(id)
+    time_data, slot, slot_range = time_dao.GetAiRecommend(id)
     
     target = request.args.get("target","main")
     return render_template("bunsuk.html", 
