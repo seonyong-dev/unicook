@@ -187,7 +187,7 @@ function ShowChart()
                             title: { display: true, text: '구매량 (개)' },
                             beginAtZero: true,
                             min: 0,
-                            max: 30
+                            max: 70
                         },
                         // 오른쪽 Y축 설정 (구매횟수용)
                         y_right: {
@@ -197,7 +197,7 @@ function ShowChart()
                             title: { display: true, text: '구매횟수 (건)' },
                             beginAtZero: true,
                             min: 0,
-                            max: 10,
+                            max: 20,
                             grid: {
                                 drawOnChartArea: false // 왼쪽 축의 그리드만 남김
                             }

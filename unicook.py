@@ -328,10 +328,10 @@ def recommend() :
     if "login" not in session or session["login"] is None:
         return redirect("/login.do")
     
-    user_id = session["login"]["id"] 
+    id = session["login"]["id"] 
     
     dao = RecommendDAO()
-    reco_items = dao.RecommendItem(user_id, "best")
+    reco_items = dao.RecommendItem(id, "best")
     reco_dict = [
         {
             "code": vo.code, 
@@ -348,7 +348,7 @@ def recommend() :
 def mixed() :
     user_id = session["login"]["id"] 
     
-    dao = BuyDAO()
+    dao = RecommendDAO()
     items = dao.GetChartData(user_id)
     dict_list = [
         {
