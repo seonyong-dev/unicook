@@ -134,8 +134,9 @@ def cart() :
     login_info = session.get("login")
     id = login_info.get("id") if login_info else None
     
-    dao = CartDAO()
-    cart_list = dao.GetList(id) if id else []
+    cart_dao = CartDAO()
+    cart_list = cart_dao.GetList(id) if id else []
+    
     
     return render_template("cart.html", cart_list=cart_list)
 
@@ -283,13 +284,14 @@ def purchaseadd():
     return "success"
 
 @app.route("/bunsuk.do")
-def bunsuk() :
+def bunsuk(target = None) :
     
     login_info = session.get("login")
     id = login_info.get("id") if login_info else None
     check_id = True if id else False
     
-    target = request.args.get("target","main")
+    if not target :
+        target = request.args.get("target","main")
     
     if target == "main" :
         time_dao  = RecommendDAO()
@@ -344,20 +346,38 @@ def recommend() :
     if "login" not in session or session["login"] is None:
         return redirect("/login.do")
     
-    id = session["login"]["id"] 
+    id = session["login"]["id"]
     
+    target = request.args.get("target", "main")
+    print(target)
     dao = RecommendDAO()
-    reco_items = dao.RecommendItem(id, "best")
-    reco_dict = [
-        {
-            "code": vo.code, 
-            "image": vo.image, 
-            "item_name": vo.item_name, 
-            "price": vo.price
-        } for vo in reco_items
-    ]
+    if target == "purchase" :
+        reco_items = dao.RecommendItem(id, "best")
+        reco_dict = [
+            {
+                "code": vo.code, 
+                "image": vo.image, 
+                "item_name": vo.item_name, 
+                "price": vo.price
+            } for vo in reco_items
+        ]
+        return jsonify(reco_dict)
+        
+    if target == "cart" :
+        reco_items = dao.RecommendItem(id, "cart")
+        reco_dict = [
+            {
+                "code": vo.code, 
+                "image": vo.image, 
+                "item_name": vo.item_name, 
+                "price": vo.price
+            } for vo in reco_items
+        ]
+        return jsonify(reco_dict)
     
     return jsonify(reco_dict)
+
+    
 
 # 구매내역 분석 시각화
 @app.route("/mixed.do")
