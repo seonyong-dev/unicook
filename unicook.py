@@ -290,7 +290,7 @@ def bunsuk() :
     if target == "main" :
         time_dao  = RecommendDAO()
         time_data, slot, slot_range = time_dao.GetAiRecommend(id)
-        return render_template("bunsuk.html", 
+        return render_template("bunsuk_main.html", 
                                target     = target,
                                check_id   = check_id,
                                time_data  = time_data,
@@ -302,7 +302,7 @@ def bunsuk() :
         re_dao.CartAiRecommend(id, algo_type = "cart")
         total, items = re_dao.GetByUserFrequency(id, n=4, algo_type = "cart")
         if int(total) > 0 :
-            return render_template("bunsuk.html",
+            return render_template("bunsuk_cart.html",
                                    target = target,
                                    total  = total,
                                    items  = items
@@ -313,7 +313,7 @@ def bunsuk() :
         buy_dao.MakePersonalBestRecommendations(id, algo_type = "best")
         total,items = buy_dao.GetByUserFrequency(id, n=4, algo_type = "best")
         if int(total) > 0 :
-            return render_template("/bunsuk.html",
+            return render_template("/bunsuk_purchase.html",
                                    target = target,
                                    total  = total,
                                    items  = items
@@ -346,10 +346,10 @@ def recommend() :
 # 구매내역 분석 시각화
 @app.route("/mixed.do")
 def mixed() :
-    user_id = session["login"]["id"] 
+    id = session["login"]["id"] 
     
     dao = RecommendDAO()
-    items = dao.GetChartData(user_id)
+    items = dao.GetChartData(id)
     dict_list = [
         {
             "item_name": vo.item_name, 

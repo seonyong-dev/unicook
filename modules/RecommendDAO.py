@@ -877,35 +877,35 @@ class RecommendDAO  :
                 
             return ndf
         
-        def GetChartData(self, id) :
-            """
-            구매 횟수 및 구매 수량 목록 조회 (상품 정보 포함)
-            """
-            items = []
-            with DBManager() as db :
-                # buy 테이블(b)과 item 테이블(i)을 code 기준으로 조인
-                # 상품이름, 구매 횟수, 구매량 구하는 구문
-                sql  = "select i.item_name as item_name, "
-                sql += "count(*) as freq, sum(b.qty) as qty "
-                sql += "from buy b "
-                sql += "join item i on b.code = i.code "
-                sql += "join score s on b.code = s.code "
-                sql += f"where b.id = '{id}' "
-                sql += "and s.algo_type = 'best' "
-                sql += "group by i.item_name "
-                sql += "order by freq desc, qty desc "  
-                sql += "limit 4 "
+    def GetChartData(self, id) :
+        """
+        구매 횟수 및 구매 수량 목록 조회 (상품 정보 포함)
+        """
+        items = []
+        with DBManager() as db :
+            # buy 테이블(b)과 item 테이블(i)을 code 기준으로 조인
+            # 상품이름, 구매 횟수, 구매량 구하는 구문
+            sql  = "select i.item_name as item_name, "
+            sql += "count(*) as freq, sum(b.qty) as qty "
+            sql += "from buy b "
+            sql += "join item i on b.code = i.code "
+            sql += "join score s on b.code = s.code "
+            sql += f"where b.id = '{id}' "
+            sql += "and s.algo_type = 'best' "
+            sql += "group by i.item_name "
+            sql += "order by freq desc, qty desc "  
+            sql += "limit 4 "
+            
+            list = db.Select(sql)
+            for n in range(list) :
+                vo = BuyVO()
+                vo.item_name   = db.GetValue(n, "item_name")
+                vo.count       = db.GetValue(n, "freq")
+                vo.qty         = db.GetValue(n, "qty")
                 
-                list = db.Select(sql)
-                for n in range(list) :
-                    vo = BuyVO()
-                    vo.item_name   = db.GetValue(n, "item_name")
-                    vo.count       = db.GetValue(n, "freq")
-                    vo.qty         = db.GetValue(n, "qty")
-                    
-                    items.append(vo)
-                    
-            return items
+                items.append(vo)
+                
+        return items
 
 """
 target_user = "user_001"        
