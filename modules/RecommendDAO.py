@@ -1,8 +1,6 @@
 """
 상품추천 처리 클래스
 """
-import joblib
-import os
 import pandas as pd
 import numpy as np
 from datetime import datetime
@@ -802,9 +800,8 @@ class RecommendDAO  :
             df_cart["code"] = df_cart["code"].astype(str)
             
             # 사용자 - 상품 매트릭스 생성 (구매 여부 기반)
-            # 수량을 사용하거나, 단순히 샀으면 1, 안 샀으면 0으로 처리
             user_item_matrix = df_buys.pivot_table(index = "id", columns = "code", values="qty", fill_value=0)
-            user_item_matrix = user_item_matrix.map(lambda x: 1 if x > 0 else 0)
+            
             
             # 아이템 간 유사도 계산 (상품 간 코사인 유사도)
             item_sim = cosine_similarity(user_item_matrix.T)

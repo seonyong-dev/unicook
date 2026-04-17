@@ -133,7 +133,6 @@ def cart() :
     cart_dao = CartDAO()
     cart_list = cart_dao.GetList(id) if id else []
     
-    
     return render_template("cart.html", cart_list=cart_list)
 
 # 장바구니 추가
