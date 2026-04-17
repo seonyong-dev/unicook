@@ -303,15 +303,7 @@ def bunsuk() :
                                )
     
     if target == "mainsub" :
-        mainsub_dao  = RecommendDAO()
-        mainsub_dao.CartAiRecommend(id, algo_type = "cart")
-        total, items = mainsub_dao.GetByUserFrequency(id, n=4, algo_type = "cart")
-        if int(total) > 0 :
-            return render_template("bunsuk_mainsub.html",
-                                   target = target,
-                                   total  = total,
-                                   items  = items
-                                   )
+        return render_template("/bunsuk_mainsub.html")
     
     if target == "cart" :
         cart_dao = RecommendDAO()
@@ -356,7 +348,6 @@ def recommend() :
             "price": vo.price
         } for vo in reco_items
     ]
-    
     return jsonify(reco_dict)
 
 # 구매내역 분석 시각화
@@ -365,7 +356,7 @@ def mixed() :
     id = session["login"]["id"] 
     
     dao = RecommendDAO()
-    items = dao.GetChartData(id)
+    items = dao.GetChartmixed(id)
     dict_list = [
         {
             "item_name": vo.item_name, 
@@ -373,8 +364,21 @@ def mixed() :
             "qty": vo.qty
         } for vo in items
     ]
-    
     return jsonify(dict_list)
+
+# 메인하단 분석 시각화
+@app.route("/bubble.do")
+def bubble():
+    dao = RecommendDAO()
+    df_chart = dao.GetByhit()
+    
+    # 가중치 점수 상위 10개만 추출
+    top = df_chart.sort_values('hit', ascending=False).head(6)
+    
+    # 데이터프레임 -> 딕셔너리 변환
+    chart_data = top.to_dict(orient='records')
+    
+    return jsonify(chart_data)
 
 # 로그인 시 장바구니에 담긴 상품 갯수 조회를 헤더에 항상 표시하기 위한 함수
 # @app.context_processor -> 공통 데이터 담당 (항상 표시해야될 데이터에 사용)

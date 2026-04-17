@@ -51,10 +51,20 @@
         
         <!-- 분석 리포트 배너 -->
         <section class="my-5 pt-4">
-            <div class="analysis-banner text-center" onclick="ShowBunsuk('mainsub')">
-                <i class="fa-solid fa-chart-line fs-1 mb-3"></i>
-                <h4 class="fw-bold">나의 식단 분석 리포트 확인하기</h4>
-                <p class="mb-0 opacity-75">클릭하여 회원님께 딱 맞는 맞춤 상품 리포트를 확인해 보세요.</p>
+            <div class="d-flex gap-3"> 
+        
+                <div class="analysis-banner text-center flex-fill" onclick="ShowBunsuk('mainsub')">
+                    <i class="fa-solid fa-chart-line fs-1 mb-3"></i>
+                    <h4 class="fw-bold">비회원 추천 분석</h4>
+                    <p class="mb-0 opacity-75">구매내역 기반 분석</p>
+                </div>
+        
+                <div class="analysis-banner text-center flex-fill" onclick="AnotherFunction()">
+                    <i class="fa-solid fa-magnifying-glass-chart fs-1 mb-3"></i>
+                    <h4 class="fw-bold">회원 추천 분석</h4>
+                    <p class="mb-0 opacity-75">???</p>
+                </div>
+        
             </div>
         </section>
            
