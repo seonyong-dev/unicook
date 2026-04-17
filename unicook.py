@@ -319,6 +319,16 @@ def bunsuk(target = None) :
                                    total  = total,
                                    items  = items
                                    )
+    if target == "view" :
+        view_dao = RecommendDAO()
+        view_dao.MakePersonalBestRecommendations(id, algo_type = "view")
+        total,items = buy_dao.GetByUserFrequency(id, n=4, algo_type = "view")
+        if int(total) > 0 :
+            return render_template("/bunsuk_view.html",
+                                   target = target,
+                                   total  = total,
+                                   items  = items
+                                   )
     
     #return render_template(f"bunsuk_{target}.html",target = target)
 
@@ -348,6 +358,18 @@ def recommend() :
         
     if target == "cart" :
         reco_items = dao.RecommendItem(id, "cart")
+        reco_dict = [
+            {
+                "code": vo.code, 
+                "image": vo.image, 
+                "item_name": vo.item_name, 
+                "price": vo.price
+            } for vo in reco_items
+        ]
+        return jsonify(reco_dict)
+    
+    if target == "view" :
+        reco_items = dao.RecommendItem(id, "view")
         reco_dict = [
             {
                 "code": vo.code, 
