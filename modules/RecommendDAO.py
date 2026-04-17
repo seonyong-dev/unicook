@@ -17,7 +17,7 @@ from modules.BuyVO     import BuyVO
 class RecommendDAO  :    
     def GetByhit(self) :
         with DBManager() as db :
-            sql  = "select i.code, count(b.code) as total "
+            sql  = "select i.item_name, i.code, count(b.code) as total "
             sql += "from item i "
             sql += "left join buy b on b.code = i.code "
             sql += "where b.btime >= date_sub(now(), interval 1 month) "
@@ -25,15 +25,18 @@ class RecommendDAO  :
             sql += "order by code "
             buy_month = db.Select(sql)
             
-            code  = []
-            total = []
+            item_name = []
+            code      = []
+            total     = []
             for n in range(buy_month) :
+                item_name.append(db.GetValue(n,"item_name"))
                 code.append(db.GetValue(n,"code"))
                 total.append(db.GetValue(n,"total"))
                 
             buy_month = {
-                'code'  : code,
-                'total_1m' : total
+                'item_name' : item_name,
+                'code'      : code,
+                'total_1m'  : total
             }
             
             df_buy_month = pd.DataFrame(buy_month)
@@ -67,7 +70,7 @@ class RecommendDAO  :
             df_concat['code'] = df_concat['code'].astype(str)
         
             # 가중치 점수 계산 (최근 인기템 지수)
-            # 최근 한달 구매수에 더 높은 가중치(0.7)를 두고 구매 전환율(전체 구매수 / 전체 조회수 * 0.3)을 더하여 최근 인기상품을 분석함.
+            # 최근 한달 구매수에 더 높은 가중치(0.7)를 두고 구매 전환비(전체 구매수 / 전체 조회수 * 0.3)을 더하여 최근 인기상품을 분석함.
             df_concat['hit'] = (df_concat['total_1m'] * 0.7) + (df_concat['total_all'] / df_concat['view'] * 0.3)
             
             # 인기순(hit) 내림차순 정렬
@@ -84,6 +87,13 @@ class RecommendDAO  :
                 sql += f"set hit = {hit} "
                 sql += f"where code = {code} "
                 db.RunSQL(sql)
+            
+            df_chart = df_concat.copy()
+            df_chart = df_chart.drop(columns=['code','total_all','view'])
+            df_chart['CVR'] = df_concat['total_all'] / df_concat['view']
+            df_chart['CVR'] = df_chart['CVR'].apply(lambda x: round(float(x), 4))
+
+            return df_chart
     
     def GetByUserFrequency(self, userid, n = 8, algo_type = "main"):
         """
@@ -875,7 +885,7 @@ class RecommendDAO  :
                 
             return ndf
         
-    def GetChartData(self, id) :
+    def GetChartmixed(self, id) :
         """
         구매 횟수 및 구매 수량 목록 조회 (상품 정보 포함)
         """
