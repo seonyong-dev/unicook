@@ -31,19 +31,19 @@ def main() :
     login_info = session.get("login")
     id     = login_info.get("id") if login_info else None
     
-    time_dao  = RecommendDAO()
-    time_data, slot, slot_range = time_dao.GetAiRecommend(id)
+    dao  = RecommendDAO()
+    time_data, slot, slot_range = dao.GetAiRecommend(id)
     
     current_page = request.args.get('page', 1, type=int)
     category = request.args.get("category", "0")
     
     if id :
-        re_dao = RecommendDAO()
-        re_dao.GetByCustom(id)
+        user_dao = UserDAO()
+        gender, age = user_dao.UserInfo(id)
+        dao.GetByCustom(id, gender, age)
     else :    
         # 최근 1달 인기상품 분석
-        re_dao = RecommendDAO()
-        re_dao.GetByhit()
+        dao.GetByhit()
         
     # 리스트 가져오기 실행
     item_dao = ItemDAO()
@@ -392,8 +392,11 @@ def bubble():
 def heatmap():
     id = session["login"]["id"] 
     
+    user_dao = UserDAO()
+    gender, age = user_dao.UserInfo(id)
+    
     dao = RecommendDAO()
-    sim_buy = dao.GetByCustom(id)
+    sim_buy = dao.GetByCustom(id, gender, age)
     
     
     # 데이터프레임 -> 딕셔너리 변환

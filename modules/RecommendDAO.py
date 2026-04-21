@@ -77,13 +77,16 @@ class 	RecommendDAO  :
             # 가중치 점수 계산 (최근 인기템 지수)
             # 최근 한달 구매수에 더 높은 가중치(0.7)를 두고 구매 전환비(전체 구매수 / 전체 조회수 * 0.3)을 더하여 최근 인기상품을 분석함.
             df_concat['hit'] = (df_concat['total_1m'] * 0.7) + (df_concat['total_all'] / df_concat['view'] * 0.3)
-            
+
             # 인기순(hit) 내림차순 정렬
             df_concat = df_concat.sort_values(by='hit', ascending=False)
         
             # item 테이블 삽입위한 hit 값 소수점 4자리로 정리
             df_concat['hit'] = df_concat['hit'].apply(lambda x: round(float(x), 4))
             
+            # 결측값 있는 행 모두 제거
+            df_concat = df_concat.dropna()
+
             # item 테이블 hit 컬럼 수정
             for i in range(len(df_concat)) :
                 code = df_concat.iloc[i]["code"]
@@ -143,15 +146,20 @@ class 	RecommendDAO  :
         return total,items
     
         
-    def GetByCustom(self, target_id) :
+    def GetByCustom(self, target_id, gender, age) :
         with DBManager() as db :
+            max_age = (age / 10) * 10 + 9
+            min_age = (age / 10) * 10
             sql  = "select u.id, i.item_name, u.gender, "
             sql += "floor(u.age/10)*10 as age_group, "
             sql += "count(b.bno) as cnt "
             sql += "from item i "
             sql += "join buy b on b.code = i.code "
             sql += "join user u on b.id = u.id "
+            sql += f"where u.gender='{gender}' "
+            sql += f"and u.age between {min_age} and {max_age}"
             sql += "group by u.id, u.gender, age_group, i.item_name "
+            print(sql)
             filt_data = db.Select(sql)
             
             id        = []
@@ -194,7 +202,7 @@ class 	RecommendDAO  :
             # 4. 두 데이터 결합 (구매 이력 + 유저 정보)
             # 이렇게 하면 '구매 패턴'과 '나이/성별'이 모두 포함된 유저 벡터가 만들어집니다.
             final_matrix = pd.concat([item_matrix, user_features_dummy], axis=1).fillna(0)
-            
+            print(final_matrix)
             # 유저 간 코사인 유사도 계산
             user_sim = cosine_similarity(final_matrix)
             user_sim_df = pd.DataFrame(user_sim, index=final_matrix.index, columns=final_matrix.index)
@@ -704,7 +712,8 @@ class 	RecommendDAO  :
         try :
             with DBManager() as db :
                 
-                df = pd.read_sql(sql, db.con)
+                #df = pd.read_sql(sql, db.con)
+                df = db.GetDataFrame(sql)
                 
                 if not target_id :
                     return self.GetTimeSlotRecommend()
