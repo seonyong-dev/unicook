@@ -1,0 +1,153 @@
+<!----------- purchase ----------->
+{% if target == "purchase" %}
+    <style>
+    .algo-box { background: #f0ede9; border-radius: 10px; padding: 15px; font-size: 0.85rem; line-height: 1.6; }
+    </style>
+    <div class="modal fade" id="analysisModal" tabindex="-1" data-bs-backdrop="static">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold">📉 개인별 최애 상품 TOP4 분석 리포트</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" onclick="ShowItem();"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="row align-items-center">
+                        <div class="col-md-7">
+                            <h5>📊 {{ session.login.name }}님의 쇼핑 성향 분석</h5>
+                                <div class="chart-wrapper" style="height: 250px; width: 100%;">
+                                    <canvas id="mixedChart"></canvas>
+                                </div>
+                        </div>
+                        <div class="col-md-5">
+                            <div class="algo-box mb-3">
+                                <strong>💡 분석 원리 (가중치 점수)</strong><br>
+                                빈도와 수량을 <span class="text-danger">가중치를 두어(빈도 * 0.7) + (수량 * 0.3)</span>상품의 충성도와 기여도를 복합 차트로 추출했습니다.
+                            </div>
+                            <div class="algo-box">
+                                <strong>📈 분석 결과</strong><br>
+                                재 구매할 확률이 가장 높은 상품군입니다. <br>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-4 p-3 rounded text-center" style="background: var(--kurly-beige);">
+                        전체 구매한 상품 중 <strong>가장 높은 점수</strong>를 가진 상위 4개 아이템을 도출했습니다.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>    
+{% endif %} 
+<script>
+$(document).off("keydown").on("keydown", function(e) {
+    if (e.key == "Escape" || e.keyCode == 27) {
+        ShowItem("purchase");
+    }
+});
+ShowChart();
+
+function ShowChart()
+{    
+    $.ajax({
+    	url : "/mixed.do",
+    	type : "get",
+    	dataType: "json",
+    	async : true,
+    	success : function(res) 
+    	{
+        	const item_names = res.map(item => item.item_name);
+            const freqs = res.map(item => item.freq);
+            const qtys = res.map(item => item.qty);
+            
+            // Chart.js 적용
+            const ctx = document.getElementById('mixedChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: item_names, // X축: 상품이름
+                    datasets: [
+                        {
+                            type: 'bar',
+                            label: '구매량',
+                            data: qtys, 
+                            backgroundColor: [
+                                'rgba(255, 99, 132, 0.6)',
+                                'rgba(54, 162, 235, 0.6)',
+                                'rgba(255, 206, 86, 0.6)',
+                                'rgba(75, 192, 192, 0.6)'  
+                            ],
+                            borderColor: [
+                                'rgba(255, 99, 132, 1)',
+                                'rgba(54, 162, 235, 1)',
+                                'rgba(255, 206, 86, 1)',
+                                'rgba(75, 192, 192, 1)'
+                            ],
+                            borderWidth: 1,
+                            yAxisID: 'y_left',   // 왼쪽 Y축
+                        },
+                        {
+                            type: 'line',
+                            label: '구매 횟수',
+                            data: freqs, 
+                            fill: false,
+                            borderColor: 'rgb(54, 162, 235)',
+                            yAxisID: 'y_right',    // 오른쪽 Y축 사용
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false,
+                        }
+                    },
+                    scales: {
+                        // 왼쪽 Y축 설정 (구매량용)
+                        y_left: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            title: { display: true, text: '구매량 (개)' },
+                            beginAtZero: true,
+                            min: 0,
+                            max: 70
+                        },
+                        // 오른쪽 Y축 설정 (구매횟수용)
+                        y_right: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            title: { display: true, text: '구매횟수 (건)' },
+                            beginAtZero: true,
+                            min: 0,
+                            max: 20,
+                            grid: {
+                                drawOnChartArea: false // 왼쪽 축의 그리드만 남김
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                // value: 눈금 값, index: 눈금이 몇번째인지, ticks: 모든 눈금 객체들의 배열
+                                callback: function(value, index, ticks) {
+                                // value가 대부분 숫자로 들어오기 때문에 getLabelForValue 사용
+                                const label = this.getLabelForValue(value);
+                                if (label.length > 5) {
+                                    return label.substring(0, 5) + '..';
+                                }
+                                return label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        
+        },
+    	error : function(request, status, error) 
+    	{
+        	alert("실패");
+    	}
+    });
+}
+</script>

@@ -11,51 +11,79 @@ from sklearn.decomposition import TruncatedSVD
 
 from modules.DBManager   import DBManager
 from modules.RecommendVO import RecommendVO
+from modules.BuyVO     import BuyVO
+
 
 class RecommendDAO  :    
-    def GetByFrequency(self,month,n) :
-        """
-        최근 1개월 구매이력을 이용한 추천
-        """
-        items = []
+    def GetByhit(self) :
         with DBManager() as db :
+            sql  = "select i.code, count(b.code) as total "
+            sql += "from item i "
+            sql += "left join buy b on b.code = i.code "
+            sql += "where b.btime >= date_sub(now(), interval 1 month) "
+            sql += "group by i.code, i.item_name, i.view "
+            sql += "order by code "
+            buy_month = db.Select(sql)
             
-            #전체 건수
-            sql  = "select count(product_id) as total "
-            sql += "from orders "
-            sql += f"where order_date  >= date_sub(now(), interval {month} month) "
-            db.Select(sql)
-            total  = int(db.GetValue(0,"total"))
+            code  = []
+            total = []
+            for n in range(buy_month) :
+                code.append(db.GetValue(n,"code"))
+                total.append(db.GetValue(n,"total"))
+                
+            buy_month = {
+                'code'  : code,
+                'total_1m' : total
+            }
             
-            #추천 상품
-            sql  = "select product_id,count(product_id) as count,"
-            sql += "(select name from product where product_id = orders.product_id) as name,"
-            sql += "(select price from product where product_id = orders.product_id) as price,"
-            sql += "(select weight from product where product_id = orders.product_id) as weight,"
-            sql += "(select category_id from product where product_id = orders.product_id) as category_id,"
-            sql += "(select category from product where product_id = orders.product_id) as category,"
-            sql += "(select image_url from product where product_id = orders.product_id) as image_url "
-            sql += "from orders "
-            sql += f"where order_date  >= date_sub(now(), interval {month} month) "
-            sql += "group by product_id "
-            sql += "order by count desc "
-            sql += f"limit 0,{ n } "
-            count = db.Select(sql)
-            for i in range(0,count) :
-                product_id  = db.GetValue(i,"product_id")
-                count  = db.GetValue(i,"count")            
-                name        = db.GetValue(i,"name")
-                price       = int(db.GetValue(i,"price"))
-                weight      = db.GetValue(i,"weight")
-                category_id = db.GetValue(i,"category_id")
-                category    = db.GetValue(i,"category")
-                image_url   = db.GetValue(i,"image_url")
-                data = { "product_id" : product_id, "count" : count,
-                        "name" : name , "price" : price, "weight" : weight,
-                        "category_id" : category_id, "category" : category,
-                        "image_url" : image_url}
-                items.append(data)
-        return total,items
+            df_buy_month = pd.DataFrame(buy_month)
+            
+            sql  = "select i.code, count(b.code) as total, i.view "
+            sql += "from item i "
+            sql += "left join buy b on b.code = i.code "
+            sql += "group by i.code, i.item_name, i.view "
+            sql += "order by code "
+            buy_view = db.Select(sql)
+            
+            code  = []
+            total = []
+            view  = []
+            for n in range(buy_view) :
+                code.append(db.GetValue(n,"code"))
+                total.append(db.GetValue(n,"total"))
+                view.append(db.GetValue(n,"view"))
+                
+            buy_view = {
+                'total_all' : total,
+                'view' : view
+            }
+            
+            df_buy_view = pd.DataFrame(buy_view)
+            
+            df_concat = pd.concat([df_buy_month, df_buy_view], axis=1)
+            
+            # 데이터 전처리: code를 문자열로 변환
+            df_concat = df_concat.copy()
+            df_concat['code'] = df_concat['code'].astype(str)
+        
+            # 가중치 점수 계산 (최근 인기템 지수)
+            # 최근 한달 구매수에 더 높은 가중치(0.7)를 두고 구매 전환율(전체 구매수 / 전체 조회수 * 0.3)을 더하여 최근 인기상품을 분석함.
+            df_concat['hit'] = (df_concat['total_1m'] * 0.7) + (df_concat['total_all'] / df_concat['view'] * 0.3)
+            
+            # 인기순(hit) 내림차순 정렬
+            df_concat = df_concat.sort_values(by='hit', ascending=False)
+        
+            # score 테이블 삽입위한 hit 값 소수점 4자리로 정리
+            df_concat['hit'] = df_concat['hit'].apply(lambda x: round(float(x), 4))
+            
+            # score 테이블 hit 컬럼 수정
+            for i in range(len(df_concat)) :
+                code = df_concat.iloc[i]["code"]
+                hit  = df_concat.iloc[i]["hit"]
+                sql  = "update item "
+                sql += f"set hit = {hit} "
+                sql += f"where code = {code} "
+                db.RunSQL(sql)
     
     def GetByUserFrequency(self, userid, n = 8, algo_type = "main"):
         """
@@ -191,7 +219,7 @@ class RecommendDAO  :
 
         return ndf
     
-    def MakeItemFrequency(self,target_user_id, target_product_id, n_components=12, algo_type = "view"):
+    def MakeItemFrequency(self,target_id, target_code, n_components=12, algo_type = "view"):
         """
         회원에 대한 상품 추천 알고리즘 구축 (상품정보)
         
@@ -203,33 +231,33 @@ class RecommendDAO  :
         """     
         # 1. 구매내역을 DB로부터 가져오기
         with DBManager() as db :
-            sql  = "select user_id,product_id,quantity "
-            sql += "from orders "        
+            sql  = "select id,code,qty "
+            sql += "from buy "        
             count = db.Select(sql)
-            user_id    = []
-            product_id = []
-            quantity   = []
+            id    = []
+            code = []
+            qty   = []
             for i in range(0,count) :
-                user_id.append(db.GetValue(i,"user_id"))
-                product_id.append(db.GetValue(i,"product_id"))
-                quantity.append(db.GetValue(i,"quantity"))
+                id.append(db.GetValue(i,"id"))
+                code.append(db.GetValue(i,"code"))
+                qty.append(db.GetValue(i,"qty"))
             
             
             data = {
-                'user_id': user_id,
-                'product_id': product_id,
-                'quantity': quantity
+                'id': id,
+                'code': code,
+                'qty': qty
             }
             df = pd.DataFrame(data) 
             
-            # --- [수정] 데이터 타입 통일: 모든 product_id를 문자열로 변환 ---
+            # --- [수정] 데이터 타입 통일: 모든 code를 문자열로 변환 ---
             df = df.copy()
-            df['product_id'] = df['product_id'].astype(str)
-            target_product_id = str(target_product_id)
+            df['code'] = df['code'].astype(str)
+            target_code = str(target_code)
             # ---------------------------------------------------------
         
             # 1. 사용자-상품 피벗 테이블 생성
-            user_item_matrix = df.pivot_table(index='user_id', columns='product_id', values='quantity', fill_value=0)
+            user_item_matrix = df.pivot_table(index='id', columns='code', values='qty', fill_value=0)
             
             # 2. 아이템 간 유사도 계산을 위해 행렬 전치 (행: 상품, 열: 사용자)
             item_user_matrix = user_item_matrix.T
@@ -244,51 +272,54 @@ class RecommendDAO  :
             
             # 5. 대상 상품 인덱스 찾기 (타입이 같으므로 int 변환 없이 바로 조회)
             try:
-                target_idx = item_ids.index(target_product_id)
+                target_idx = item_ids.index(target_code)
             except ValueError:
                 db.DBClose()
-                return f"상품 코드 {target_product_id}를 데이터에서 찾을 수 없습니다."
+                return f"상품 코드 {target_code}를 데이터에서 찾을 수 없습니다."
             
             # 6. 상관관계 점수 추출
             similarities = corr[target_idx]
             
             # 7. 결과 데이터프레임 구성
             recom_df = pd.DataFrame({
-                'product_id': item_ids,
+                'code': item_ids,
                 'score': similarities
             })
             
             # 8. 필터링 로직
             # - 자기 자신 제외
             # - 해당 유저가 이미 구매한 상품 제외
-            bought_list = df[df['user_id'] == target_user_id]['product_id'].unique()
+            bought_list = df[df['id'] == target_id]['code'].unique()
             
             final_recom = recom_df[
-                (~recom_df['product_id'].isin(bought_list)) & 
-                (recom_df['product_id'] != target_product_id)
+                (~recom_df['code'].isin(bought_list)) & 
+                (recom_df['code'] != target_code)
             ].sort_values(by='score', ascending=False).head(10)
             
             # 9. 최종 score 테이블 형식 가공
-            final_recom['user_id'] = target_user_id
+            final_recom['id'] = target_id
             final_recom['algo_type'] = 'svd'
             final_recom['score'] = final_recom['score'].apply(lambda x: round(float(x), 4))
                     
-            ndf = final_recom[['user_id', 'product_id', 'score', 'algo_type']]        
+            ndf = final_recom[['id', 'code', 'score', 'algo_type']]        
             
-            #기존 추천정보 삭제
-            sql  = "delete from score "
-            sql += f"where user_id = '{target_user_id}' and algo_type = '{algo_type}'"
-            db.RunSQL(sql)
+            if target_id :
+                #user id가 있는 경우에만 처리
             
-            for i in range(0,len(ndf)) :
-                product_id = ndf.iloc[i]["product_id"]
-                score = ndf.iloc[i]["score"]
-                sql  = "insert into score "
-                sql += "(user_id,product_id,score,algo_type) "
-                sql += "values "
-                sql += f"('{target_user_id}','{product_id}','{score}','{algo_type}') "
-                #print(sql)
-                db.RunSQL(sql)       
+                #기존 추천정보 삭제
+                sql  = "delete from score "
+                sql += f"where id = '{target_id}' and algo_type = '{algo_type}'"
+                db.RunSQL(sql)
+                
+                for i in range(0,len(ndf)) :
+                    code = ndf.iloc[i]["code"]
+                    score = ndf.iloc[i]["score"]
+                    sql  = "insert into score "
+                    sql += "(id,code,score,algo_type) "
+                    sql += "values "
+                    sql += f"('{target_id}','{code}','{score}','{algo_type}') "
+                    #print(sql)
+                    db.RunSQL(sql)       
         
         return ndf
     
@@ -550,7 +581,7 @@ class RecommendDAO  :
                 vo.price     = f"{db.GetValue(n, 'price'):,}원"
                 item.append(vo)
         return item
-    
+    # 비회원 시간대별 상품 분석 및 추천
     def GetTimeSlotRecommend(self) :
         sql = """
         select 
@@ -571,10 +602,10 @@ class RecommendDAO  :
         group by time_slot, i.code, i.item_name, i.image, i.price
         order by time_slot, count desc
         """
-        
         try :
-            with DBManager() as db :
-                ranking_df = pd.read_sql(sql, db.con)
+            with DBManager() as db :                
+                #ranking_df = pd.read_sql(sql, db.con)
+                ranking_df = db.GetDataFrame(sql)
             now_hour = datetime.now().hour
         except Exception as e:
             print(f"데이터 분석 중 오류 발생: {e}")
@@ -605,31 +636,7 @@ class RecommendDAO  :
             return top_data.to_dict('records'), slot, slot_range
         else:
             return [], slot, slot_range
-
-    def get_items_category(self, category) :
-        sql = """
-        select
-            i.code, i.item_name, i.image, i.price, count(*) as count
-        from buy b
-        join item i on b.code = i.code
-        where i.category = %s
-        group by i.code, i.item_name, i.image, i.price
-        order by count desc
-        limit 4
-        """
-        try :
-            with DBManager() as db :
-                items_df = pd.read_sql(sql, db.con, params=(category,))
-            if not items_df.empty : 
-                items_df["price"] = [int(i) for i in items_df["price"]]
-                return items_df.to_dict('records')
-            return []
-        except Exception as e :
-            print(f"카테고리별 상품 추천 중 오류 {e}")
-            return []
-
-
-
+    # 회원 시간대별 상품 분석 및 추천
     def GetAiRecommend(self, target_id, n_components=12, algo_type = "main") :
         
         now_hour = datetime.now().hour
@@ -657,7 +664,8 @@ class RecommendDAO  :
         try :
             with DBManager() as db :
                 
-                df = pd.read_sql(sql, db.con)
+                #df = pd.read_sql(sql, db.con)
+                df = db.GetDataFrame(sql)
                 
                 if not target_id :
                     return self.GetTimeSlotRecommend()
@@ -764,7 +772,6 @@ class RecommendDAO  :
                         "image"     : row["image"],
                         "score"     : scr
                     })
-                print(f"정보 보존율: {np.sum(svd.explained_variance_ratio_):.2%}")
                 return final_result, slot, slot_range
                     
         except Exception as e :
@@ -774,7 +781,6 @@ class RecommendDAO  :
             return self.GetTimeSlotRecommend()
 
     def CartAiRecommend(self, target_id, algo_type = "cart") :
-        
         
         id   = []
         code = []
@@ -828,7 +834,7 @@ class RecommendDAO  :
             # 사용자 - 상품 매트릭스 생성 (구매 여부 기반)
             # 수량을 사용하거나, 단순히 샀으면 1, 안 샀으면 0으로 처리
             user_item_matrix = df_buys.pivot_table(index = "id", columns = "code", values="qty", fill_value=0)
-            user_item_matrix = user_item_matrix.applymap(lambda x: 1 if x > 0 else 0)
+            user_item_matrix = user_item_matrix.map(lambda x: 1 if x > 0 else 0)
             
             # 아이템 간 유사도 계산 (상품 간 코사인 유사도)
             item_sim = cosine_similarity(user_item_matrix.T)
@@ -838,7 +844,6 @@ class RecommendDAO  :
             current_cart_items = df_cart[df_cart["id"] == target_id]["code"].tolist()
             
             if not current_cart_items :
-                db.DBClose()
                 return "장바구니가 비어 있어 추천 불가"
             
             # 장바구니 아이템과 유사한 상품 점수 합계 구하기
@@ -862,7 +867,6 @@ class RecommendDAO  :
             final_recom["score"] = final_recom["score"].apply(lambda x: round(float(x), 4))
             
             ndf = final_recom[["id", "code", "score", "algo_type"]]
-            
             # 기존 추천정보 등록
             for i in range(0, len(ndf)) :
                 code  = ndf.iloc[i]["code"]
@@ -870,10 +874,40 @@ class RecommendDAO  :
                 sql  = "insert into score "
                 sql += "(id, code, score, algo_type) "
                 sql += "values "
-                sql += f"('{target_id}','{code}', '{score}', '{algo_type}')"
+                sql += f"('{target_id}',{code}, {score}, '{algo_type}')"
                 db.RunSQL(sql)
                 
             return ndf
+        
+    def GetChartData(self, id) :
+        """
+        구매 횟수 및 구매 수량 목록 조회 (상품 정보 포함)
+        """
+        items = []
+        with DBManager() as db :
+            # buy 테이블(b)과 item 테이블(i)을 code 기준으로 조인
+            # 상품이름, 구매 횟수, 구매량 구하는 구문
+            sql  = "select i.item_name, "
+            sql += "count(*) as freq, sum(b.qty) as qty "
+            sql += "from buy b "
+            sql += "join item i on b.code = i.code "
+            sql += "join score s on b.code = s.code "
+            sql += f"where b.id = '{id}' "
+            sql += "and s.algo_type = 'best' "
+            sql += "group by i.item_name "
+            sql += "order by freq desc, qty desc "  
+            sql += "limit 4 "
+            
+            list = db.Select(sql)
+            for n in range(list) :
+                vo = BuyVO()
+                vo.item_name   = db.GetValue(n, "item_name")
+                vo.count       = db.GetValue(n, "freq")
+                vo.qty         = db.GetValue(n, "qty")
+                
+                items.append(vo)
+                
+        return items
 
 """
 target_user = "user_001"        

@@ -36,10 +36,14 @@ def main() :
     
     current_page = request.args.get('page', 1, type=int)
     category = request.args.get("category", "0")
-    dao = ItemDAO()
-    total, items = dao.GetList(current_page, category)
     
+    # 최근 1달 인기상품 분석
+    re_dao = RecommendDAO()
+    re_dao.GetByhit()
     
+    # 리스트 가져오기 실행
+    item_dao = ItemDAO()
+    total, items = item_dao.GetList(current_page, category)
     
     # 페이지 6개씩 구현
     total_pages = math.ceil(total / 16)
@@ -120,9 +124,19 @@ def view() :
     code = request.args.get("code","")
     if code == "":
         return redirect("/")
+
+    login_info = session.get("login")
+    user_id = login_info.get("id") if login_info else None
+    print(user_id)
+    
     dao = ItemDAO()
     item = dao.View(code)
-    return render_template("view.html", item=item)
+    
+    dao = RecommendDAO()
+    reco_items = dao.RecommendItem(user_id, "best")
+    ndf = dao.MakeItemFrequency(user_id, code)
+    
+    return render_template("view.html", item=item, reco_items=reco_items, ndf=ndf)
 
 @app.route("/cart.do")
 def cart() :
@@ -130,8 +144,9 @@ def cart() :
     login_info = session.get("login")
     id = login_info.get("id") if login_info else None
     
-    dao = CartDAO()
-    cart_list = dao.GetList(id) if id else []
+    cart_dao = CartDAO()
+    cart_list = cart_dao.GetList(id) if id else []
+    
     
     return render_template("cart.html", cart_list=cart_list)
 
@@ -279,30 +294,43 @@ def purchaseadd():
     return "success"
 
 @app.route("/bunsuk.do")
-def bunsuk() :
+def bunsuk(target = None) :
     
     login_info = session.get("login")
     id = login_info.get("id") if login_info else None
     check_id = True if id else False
     
-    target = request.args.get("target","main")
+    if not target :
+        target = request.args.get("target","main")
     
     if target == "main" :
         time_dao  = RecommendDAO()
         time_data, slot, slot_range = time_dao.GetAiRecommend(id)
-        return render_template("bunsuk.html", 
+        return render_template("bunsuk_main.html", 
                                target     = target,
                                check_id   = check_id,
                                time_data  = time_data,
                                slot       = slot,
                                slot_range = slot_range
                                )
-    if target == "cart" :
-        re_dao = RecommendDAO()
-        re_dao.CartAiRecommend(id, algo_type = "cart")
-        total, items = re_dao.GetByUserFrequency(id, n=4, algo_type = "cart")
+    
+    if target == "mainsub" :
+        mainsub_dao  = RecommendDAO()
+        mainsub_dao.CartAiRecommend(id, algo_type = "cart")
+        total, items = mainsub_dao.GetByUserFrequency(id, n=4, algo_type = "cart")
         if int(total) > 0 :
-            return render_template("bunsuk.html",
+            return render_template("bunsuk_mainsub.html",
+                                   target = target,
+                                   total  = total,
+                                   items  = items
+                                   )
+    
+    if target == "cart" :
+        cart_dao = RecommendDAO()
+        cart_dao.CartAiRecommend(id, algo_type = "cart")
+        total, items = cart_dao.GetByUserFrequency(id, n=4, algo_type = "cart")
+        if int(total) > 0 :
+            return render_template("bunsuk_cart.html",
                                    target = target,
                                    total  = total,
                                    items  = items
@@ -313,7 +341,18 @@ def bunsuk() :
         buy_dao.MakePersonalBestRecommendations(id, algo_type = "best")
         total,items = buy_dao.GetByUserFrequency(id, n=4, algo_type = "best")
         if int(total) > 0 :
-            return render_template("/bunsuk.html",
+            return render_template("/bunsuk_purchase.html",
+                                   target = target,
+                                   total  = total,
+                                   items  = items
+                                   )
+ 
+    if target == "view" :
+        buy_dao = RecommendDAO()
+        buy_dao.MakePersonalBestRecommendations(id, algo_type = "best")
+        total,items = buy_dao.GetByUserFrequency(id, n=4, algo_type = "best")
+        if int(total) > 0 :
+            return render_template("/bunsuk_view.html",
                                    target = target,
                                    total  = total,
                                    items  = items
@@ -328,28 +367,45 @@ def recommend() :
     if "login" not in session or session["login"] is None:
         return redirect("/login.do")
     
-    user_id = session["login"]["id"] 
+    id = session["login"]["id"]
     
+    target = request.args.get("target", "main")
+    print(target)
     dao = RecommendDAO()
-    reco_items = dao.RecommendItem(user_id, "best")
-    reco_dict = [
-        {
-            "code": vo.code, 
-            "image": vo.image, 
-            "item_name": vo.item_name, 
-            "price": vo.price
-        } for vo in reco_items
-    ]
+    if target == "purchase" :
+        reco_items = dao.RecommendItem(id, "best")
+        reco_dict = [
+            {
+                "code": vo.code, 
+                "image": vo.image, 
+                "item_name": vo.item_name, 
+                "price": vo.price
+            } for vo in reco_items
+        ]
+        return jsonify(reco_dict)
+        
+    if target == "cart" :
+        reco_items = dao.RecommendItem(id, "cart")
+        reco_dict = [
+            {
+                "code": vo.code, 
+                "image": vo.image, 
+                "item_name": vo.item_name, 
+                "price": vo.price
+            } for vo in reco_items
+        ]
+        return jsonify(reco_dict)
     
     return jsonify(reco_dict)
+    
 
 # 구매내역 분석 시각화
 @app.route("/mixed.do")
 def mixed() :
-    user_id = session["login"]["id"] 
+    id = session["login"]["id"] 
     
-    dao = BuyDAO()
-    items = dao.GetChartData(user_id)
+    dao = RecommendDAO()
+    items = dao.GetChartData(id)
     dict_list = [
         {
             "item_name": vo.item_name, 
