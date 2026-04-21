@@ -1,6 +1,7 @@
 # DBManager
 
 import pymysql
+import pandas as pd
 
 class DBManager :
     def __init__(self) :
@@ -26,9 +27,15 @@ class DBManager :
     # INSERT, UPDATE, DELETE 실행
     def RunSQL(self, sql) :
         cursor = self.con.cursor()
-        cursor.execute(sql)
-        self.con.commit()
-        cursor.close()
+        try :
+            cursor.execute(sql)
+            self.con.commit()
+            cursor.close()
+        except :
+            print("excute error in sql")
+            cursor.close()
+            return
+            
     
     # SELECT 실행
     def Select(self, sql, params=[]) :
@@ -52,4 +59,19 @@ class DBManager :
             if item[0] == colname :
                 return self.data[rowno][idx]
         return None
+    
+    # dataframe 가져오기
+    def GetDataFrame(self,sql) :
+        self.Select(sql)
+        
+        if not hasattr(self, "data") or not hasattr(self, "desc"):
+            return pd.DataFrame() # 빈 데이터프레임 반환
+            
+        # 2. self.desc에서 컬럼명만 추출
+        columns = [col[0] for col in self.desc]
+        
+        # 3. 데이터를 기반으로 DataFrame 생성
+        df = pd.DataFrame(self.data, columns=columns)
+        return df
+    
     

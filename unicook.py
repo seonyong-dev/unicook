@@ -306,8 +306,11 @@ def bunsuk() :
                                slot_range = slot_range
                                )
     
-    if target == "mainsub" :
-        return render_template("/bunsuk_mainsub.html")
+    if target == "mainsubN" :
+        return render_template("/bunsuk_mainsubN.html")
+    
+    if target == "mainsubY" :
+        return render_template("/bunsuk_mainsubY.html")
     
     if target == "cart" :
         cart_dao = RecommendDAO()
@@ -391,12 +394,10 @@ def heatmap():
     
     dao = RecommendDAO()
     sim_buy = dao.GetByCustom(id)
-    print(sim_buy)
     
     
     # 데이터프레임 -> 딕셔너리 변환
     chart_data = sim_buy.reset_index().to_dict(orient='records')
-    print(chart_data)
     
     return jsonify(chart_data)
 

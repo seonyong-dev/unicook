@@ -619,7 +619,8 @@ class 	RecommendDAO  :
         
         try :
             with DBManager() as db :
-                ranking_df = pd.read_sql(sql, db.con)
+                #ranking_df = pd.read_sql(sql, db.con)
+                ranking_df = db.GetDataFrame(sql)
             now_hour = datetime.now().hour
         except Exception as e:
             print(f"데이터 분석 중 오류 발생: {e}")
@@ -664,7 +665,8 @@ class 	RecommendDAO  :
         """
         try :
             with DBManager() as db :
-                items_df = pd.read_sql(sql, db.con, params=(category,))
+                #items_df = pd.read_sql(sql, db.con, params=(category,))
+                items_df = db.GetDataFrame(sql)
             if not items_df.empty : 
                 items_df["price"] = [int(i) for i in items_df["price"]]
                 return items_df.to_dict('records')
