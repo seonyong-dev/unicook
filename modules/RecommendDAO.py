@@ -586,6 +586,7 @@ class RecommendDAO  :
                 vo.price     = f"{db.GetValue(n, 'price'):,}원"
                 item.append(vo)
         return item
+    
     # 비회원 시간대별 상품 분석 및 추천
     def GetTimeSlotRecommend(self) :
         
@@ -620,7 +621,7 @@ class RecommendDAO  :
         
         try :
             with DBManager() as db :
-                ranking_df = pd.read_sql(sql, db.con)
+                ranking_df = db.GetDataFrame(sql)
             now_hour = datetime.now().hour
         except Exception as e:
             print(f"데이터 분석 중 오류 발생: {e}")
@@ -689,7 +690,7 @@ class RecommendDAO  :
         try :
             with DBManager() as db :
                 
-                df = pd.read_sql(sql, db.con)
+                df = db.GetDataFrame(sql)
                 
                 if not target_id :
                     return self.GetTimeSlotRecommend()
@@ -909,7 +910,104 @@ class RecommendDAO  :
                 db.RunSQL(sql)
                 
             return ndf
-        
+    
+    def ViewAiRecommend(self, target_id, current_code, top_k = 19, algo_type = "view") :
+        """
+        제품 상세 페이지
+        """
+        with DBManager() as db :
+            sql  = "select id, code, qty from buy"
+            
+            count = db.Select(sql)
+            id   = []
+            code = []
+            qty  = []
+            for i in range(0, count) :
+                id.append(db.GetValue(i, "id"))
+                code.append(db.GetValue(i, "code"))
+                qty.append(db.GetValue(i, "qty"))
+            
+            data = {
+                "id"   : id,
+                "code" : code,
+                "qty"  : qty
+            }
+            df = pd.DataFrame(data)
+            
+            sql      = "select code, item_name from item "
+            count    = db.Select(sql)
+            item_map = {}
+            for i in range(0, count) :
+                i_code = db.GetValue(i, "code")
+                i_name = db.GetValue(i, "item_name")
+                item_map[i_code]  = i_name
+            
+            # 사용자 - 상품 매트릭스 생성
+            user_item_matrix = df.pivot_table(index = "id", columns = "code", values = "qty", fill_value = 0)
+            # 아이템 - 사용자 매트릭스로 뒤집기
+            item_user_matrix = user_item_matrix.T
+            
+            # 상품 간 코사인 유사도 계산
+            item_sim = cosine_similarity(item_user_matrix)
+            item_sim_df = pd.DataFrame(item_sim, index = item_user_matrix.index, columns = item_user_matrix.index)
+            
+            sim_items = item_sim_df[current_code].sort_values(ascending = False)[1:top_k+1]
+            
+            predictions = []
+            
+            for sim_code, score in sim_items.items() :
+                
+                predictions.append({
+                    "id"        : target_id,
+                    "code"      : sim_code,
+                    "score"     : round(float(score), 4),
+                    "algo_type" : algo_type
+                })
+            ndf = pd.DataFrame(predictions)
+            
+            # 기존 추천정보 삭세
+            sql  = "delete from score "
+            sql += f"where id = '{target_id}' and algo_type = '{algo_type}' "
+            db.RunSQL(sql)
+            
+            for i in range(0, len(ndf)) : 
+                code  = ndf.iloc[i]["code"]
+                score = ndf.iloc[i]["score"]
+                sql  = "insert into score "
+                sql += "(id, code, score, algo_type) "
+                sql += "values "
+                sql += f"('{target_id}', {code}, {score}, '{algo_type}') "
+                db.RunSQL(sql)
+            
+            
+            # 차트에 표시할 상품 리스트 (현재 상품 + 추천 상품 19개 = 총 20개)
+            chart_codes = [current_code] + sim_items.index.tolist()
+            
+            # 전체 유사도 테이블에서 이 5개 상품에 해당하는 행과 열만 추출 (20x20)
+            chart_sim_df = item_sim_df.loc[chart_codes, chart_codes]
+            
+            temp_df = chart_sim_df.replace(1.0, float('nan'))
+            min_sim = float(temp_df.min().min())
+            
+            chart_data = []
+            for index, row in chart_sim_df.iterrows():
+                # Y축에 표시될 이름 (행 상품명)
+                row_name = item_map.get(index, str(index))
+                
+                chart_data.append({
+                    "name": row_name,
+                    "data": [
+                        {
+                            # X축에 표시될 이름 (열 상품명)
+                            "x": item_map.get(col, str(col)),
+                            "y": round(float(val), 2)
+                        }
+                        for col, val in row.items()
+                    ]
+                })
+                
+            return {"ndf" : ndf, "chart_data" : chart_data, "min_val": min_sim}
+                
     def GetChartmixed(self, id) :
         """
         구매 횟수 및 구매 수량 목록 조회 (상품 정보 포함)

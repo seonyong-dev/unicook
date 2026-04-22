@@ -121,11 +121,25 @@ def navi() :
 # 상세페이지
 @app.route("/view.do")
 def view() :
-    code = request.args.get("code","")
+    
+    login_info = session.get("login")
+    id = login_info.get("id") if login_info else None
+    
+    code = request.args.get("code", 0)
+    
     if code == "":
         return redirect("/")
+    
     dao = ItemDAO()
     item = dao.View(code)
+    
+    view_dao = RecommendDAO()
+
+    if login_info :
+        view_dao.ViewAiRecommend(id, int(code), top_k=19, algo_type="view")
+    else :
+        view_dao.GetTimeSlotRecommend()
+
     return render_template("view.html", item=item)
 
 @app.route("/cart.do")
@@ -328,14 +342,22 @@ def bunsuk(target = None) :
                                    items  = items
                                    )
     if target == "view" :
+        code = int(request.args.get("code", 0))
         view_dao = RecommendDAO()
-        view_dao.MakePersonalBestRecommendations(id, algo_type = "view")
-        total,items = buy_dao.GetByUserFrequency(id, n=4, algo_type = "view")
+        if login_info :
+            result = view_dao.ViewAiRecommend(id, code, top_k = 19, algo_type = "view")
+            chart_data = result["chart_data"]
+            min_val    = result["min_val"]
+        else :
+            view_dao.GetTimeSlotRecommend()
+        total,items = view_dao.GetByUserFrequency(id, n=19, algo_type = "view")
         if int(total) > 0 :
             return render_template("/bunsuk_view.html",
-                                   target = target,
-                                   total  = total,
-                                   items  = items
+                                   target     = target,
+                                   total      = total,
+                                   items      = items,
+                                   chart_data = chart_data,
+                                   min_val    = min_val
                                    )
     
     #return render_template(f"bunsuk_{target}.html",target = target)
@@ -350,7 +372,7 @@ def recommend() :
     id = session["login"]["id"]
     
     target = request.args.get("target", "main")
-    print(target)
+
     dao = RecommendDAO()
 
     if target == "purchase" :
@@ -378,6 +400,7 @@ def recommend() :
         return jsonify(reco_dict)
     
     if target == "view" :
+        code = request.args.get("code", 0)
         reco_items = dao.RecommendItem(id, "view")
         reco_dict = [
             {
@@ -387,7 +410,13 @@ def recommend() :
                 "price": vo.price
             } for vo in reco_items
         ]
-        return jsonify(reco_dict)
+        
+        chart_data = dao.ViewAiRecommend(id, int(code), top_k=19, algo_type="view")
+        
+        return jsonify({"items"      : reco_dict,
+                        "chart_data" : chart_data["chart_data"],
+                        "min_val"    : chart_data["min_val"]
+               })
     
     return jsonify(reco_dict)
 

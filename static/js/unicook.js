@@ -93,7 +93,7 @@ function ShowLogin()
  			$("#popupModal").html(result);
  			var obj = document.getElementById("loginModal");
  			var modal = new bootstrap.Modal(obj);
- 			modal.show();                 
+ 			modal.show();
     	},
     	error : function(request, status, error) 
     	{
@@ -103,10 +103,21 @@ function ShowLogin()
 
 function ShowBunsuk(target)
 {
+
+    let sendData = { target: target };
+
+    //'view' 호출 시 현재 상품 코드를 추가
+    if (target == "view") {
+        const code = $("#code").val();
+        if (code) {
+            sendData.code = code;
+        }
+    }
+
    $.ajax({
-   	url : "/bunsuk.do?target=" + target,
+   	url : "/bunsuk.do",
    	type : "get",
-   	data : {target : target},
+   	data : sendData,
    	async : true,
    	success : function(result) 
    	{
@@ -114,6 +125,14 @@ function ShowBunsuk(target)
    			var obj = document.getElementById("analysisModal");
    			var modal = new bootstrap.Modal(obj);
    			modal.show();
+   			if(target == "view"){
+       			const chartData = $("#chartData").val();
+       			if(chartData){
+           			const chartObj = JSON.parse(chartData);
+           			ShowChart(chartObj);
+       			}
+   			}
+   			
    	},
    	error : function(request, status, error) 
    	{
@@ -124,17 +143,36 @@ function ShowBunsuk(target)
 
 function ShowItem(target) 
 {
+
+    let sendData = { target: target };
+
+    //'view' 호출 시 현재 상품 코드를 추가
+    if (target == "view") {
+        const code = $("#code").val();
+        if (code) {
+            sendData.code = code;
+        }
+    }
+
     $.ajax({
     	url : "/recommend.do",
     	type : "get",
     	dataType: "json",
-    	data : {target : target},
+    	data : sendData,
     	async : true,
-    	success : function(reco_dict) 
+    	success : function(response) 
     	{
         	let html = "";
+        	
+        	// main, main_sub, cart 에서는 배열 반환
+        	// view 에서는 객체 반환
+        	let items = response.items ? response.items : response;
 
-            reco_dict.forEach(function(item) 
+            if (response.chart_data) {
+                $("#chartData").val(JSON.stringify(response.chart_data));
+            }
+
+            items.forEach(function(item) 
             {
                 html += `
                     <div class="col-6 col-md-3">
