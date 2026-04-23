@@ -10,6 +10,7 @@ from flask import redirect
 from flask import session
 from flask import jsonify
 from flask import url_for
+from flask import flash
 from modules.UserDAO import UserDAO
 from modules.ItemDAO import ItemDAO
 from modules.CartDAO import CartDAO
@@ -233,7 +234,8 @@ def purchase():
    
     # 로그인 여부 확인
     if "login" not in session or session["login"] is None:
-        return redirect("/login.do") # 슬래시(/)를 붙이는 것이 더 안전합니다.
+        flash("로그인 후 이용해주세요.")
+        return redirect(request.referrer or '/')
     
     
     period = request.args.get("period","all")   
