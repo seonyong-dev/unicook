@@ -9,7 +9,6 @@ from flask import make_response
 from flask import redirect
 from flask import session
 from flask import jsonify
-from flask import url_for
 from flask import flash
 from modules.UserDAO import UserDAO
 from modules.ItemDAO import ItemDAO
@@ -95,7 +94,7 @@ def loginok() :
 @app.route("/logout.do")
 def logout() :
     session.clear()
-    return redirect(url_for('main'))
+    return "OK"
 
 # 로그인 체크(/loginCheck.do)
 @app.route("/loginCheck.do")
@@ -280,29 +279,33 @@ def purchase():
 
 # 구매 완료 처리
 @app.route("/purchase.do", methods=["POST"])
-def purchaseadd():
-    data  = request.get_json()
-    items = data.get("items")
+def purchaseadd() :
+    
     login_info = session.get("login")
     id = login_info.get("id")
     
+    data  = request.get_json()
+    items = data.get("items")
+    
     if not login_info :
         return jsonify({"result": "fail", "message": "로그인이 필요합니다."})
-    
     buy_dao  = BuyDAO()
     cart_dao = CartDAO()
     
     cno_list = []
+    
     for item in items :
-        cno  = item["cno"]
+        if "cno" in item :
+            cno  = item["cno"]
+            cno_list.append(cno)
+        
         code = item["code"]
         qty  = item["qty"]
         
         buy_dao.Insert(id, code, qty)
         
-        cno_list.append(cno)
     
-    if cno_list:
+    if len(cno_list) > 0:
         cart_dao.CartDelete(cno_list)
         
     return "success"
@@ -398,6 +401,7 @@ def recommend() :
         return jsonify(reco_dict)
         
     if target == "cart" :
+        print(target)
         reco_items = dao.RecommendItem(id, "cart")
         reco_dict = [
             {

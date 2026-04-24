@@ -101,6 +101,22 @@ function ShowLogin()
     })    	
 }
 
+function DoLogout(){
+    if(!confirm("로그아웃 하시겠습니까?")) return;
+    $.ajax({
+        url: "/logout.do",
+        type: "GET",
+        success: function(data) {
+            if (data.trim() == "OK") {
+                location.reload(); 
+            }
+        },
+        error: function() {
+            alert("로그아웃 처리 중 오류가 발생했습니다.");
+        }
+    });
+}
+
 function ShowBunsuk(target)
 {
 
@@ -197,7 +213,6 @@ function ShowItem(target)
     	}
     });
 }
-
 
 // 장바구니에 상품 추가
 function CartAdd(code)
@@ -520,6 +535,34 @@ function loadItems(category, page, keyword) {
         	alert("실패");
     	}
     });
+}
+
+// 바로 구매하기
+function DoPurchase(code){
+    let purchaseData = [];
+    let qty = $(".qtyCount").text();
+    purchaseData.push({
+        code : parseInt(code),
+        qty  : parseInt(qty)
+    });
+    $.ajax({
+    	url : "/purchase.do",
+    	type : "post",
+    	contentType: "application/json",
+    	data : JSON.stringify(
+    	{
+        	items : purchaseData
+    	}),
+    	success : function(response)
+    	{
+        	alert("구매 완료!");
+        	document.location = "purchase.do";
+    	},
+    	error : function(request, status, error) 
+    	{
+        	alert("실패");
+    	}
+    })
 }
 
 function purchase(){

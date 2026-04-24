@@ -34,6 +34,7 @@
                 DoClick("purchase");
             });
             $("#cartBtn").click(function(){
+                event.preventDefault();
                 DoClick("cart");
             });
         });
@@ -48,7 +49,6 @@
                         location.href= obj+".do";
                     }else{
                         alert("로그인 하세요.")
-                        location.href="/";
                     }
                 })
                 .catch(error => {
@@ -82,7 +82,7 @@
             </a>
             {% if session["login"] is defined and session["login"] is not none %}
                 [ {{ session["login"].name }} ]님
-                <button class="btn btn-sand px-4" type="button" onclick="location.href='/logout.do'">
+                <button class="btn btn-sand px-4" type="button" onclick="DoLogout();">
                     <i class="fa-solid fa-user me-2"></i>로그아웃
                 </button>
             {% else %}
