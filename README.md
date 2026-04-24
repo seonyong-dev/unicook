@@ -151,8 +151,8 @@
 
 ### 📈 Visualization
 
-![Matplotlib](https://img.shields.io/badge/Matplotlib-%23ffffff.svg?style=for-the-badge&logo=Matplotlib&logoColor=black)
-![Seaborn](https://img.shields.io/badge/Seaborn-%234479A1.svg?style=for-the-badge&logo=Seaborn&logoColor=white)
+![Chart.js](https://img.shields.io/badge/chart.js-F5788D?style=for-the-badge&logo=chart.js&logoColor=white)
+![ApexCharts](https://img.shields.io/badge/ApexCharts-008FFB?style=for-the-badge&logo=apexcharts&logoColor=white)
 ---
 
 ### 🤝 Collaboration
@@ -183,18 +183,34 @@
 
 ## 🖥️ 화면 소개
 
-### 1. 메인 페이지
+### 1. 메인 페이지 상단
 
 <table>
     <tr>
         <td align="center" width="200">
-            <h5>메인 페이지</h5>
+            <h5>메인 페이지 상단</h5>
             <img src="./images/main_1.png" alt="main_1" width="100%" />  
         </td>
         <td align="center" width="200">
             <h5>시간대별 분석</h5>
             <img src="./images/main_1_recommend.png" alt="시간대별 분석" width="100%" />  
         </td> 
+    </tr>
+    <tr>
+      <td align="center">
+        <div>✔ 시간대별 추천 상품 화면에 표시</div>
+      </td>
+      <td align="center">
+        <div>✔ 비회원은 시간대별 분석</div>
+        <div>✔ 회원은 시간대별 + 사용자 구매이력(SVD) + 아이템 카테고리 결합 분석</div>
+      </td>
+    </tr>
+</table>
+
+### 2. 메인 페이지 하단
+
+<table>
+    <tr>
         <td align="center" width="200">
             <h5>메인 페이지 하단</h5>
             <img src="./images/main_2.png" alt="메인하단" width="100%" />
@@ -210,13 +226,6 @@
     </tr>
     <tr>
       <td align="center">
-        <div>✔ 시간대별 추천 상품 화면에 표시</div>
-      </td>
-      <td align="center">
-        <div>✔ 비회원은 시간대별 분석</div>
-        <div>✔ 회원은 시간대별 + 사용자 구매이력(SVD) + 아이템 카테고리 결합 분석</div>
-      </td>
-      <td align="center">
         <div>✔ 구매 빈도와 수량으로 가중치를 계산하여 화면에 표시</div>
       </td>
       <td align="center">
@@ -228,7 +237,7 @@
     </tr>
 </table>
 
-### 2. 상세 페이지
+### 3. 상세 페이지
 
 <table>
     <tr>
@@ -251,7 +260,7 @@
     </tr>
 </table>
 
-### 3. 장바구니
+### 4. 장바구니
 
 <table>
     <tr>
@@ -274,7 +283,7 @@
     </tr>
 </table>
 
-### 4. 구매내역
+### 5. 구매내역
 
 <table>
     <tr>
